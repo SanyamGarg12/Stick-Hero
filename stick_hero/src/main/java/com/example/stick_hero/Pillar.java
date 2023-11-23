@@ -1,4 +1,4 @@
-package com.example.stickhero;
+package com.example.stick_hero;
 
 public class Pillar {
 //    private int x;

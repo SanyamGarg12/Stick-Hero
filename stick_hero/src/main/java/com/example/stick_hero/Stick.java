@@ -1,10 +1,9 @@
-package com.example.stickhero;
+package com.example.stick_hero;
 
 public class Stick {
-//    private int x;
-//    private int y;
-//    private int length;
-//
+    private int x;
+    private int y;
+    private int length;
 //    generate_stick() {
 //        // TODO implement here
 //    }

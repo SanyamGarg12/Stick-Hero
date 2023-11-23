@@ -1,11 +1,19 @@
-package com.example.stickhero;
+package com.example.stick_hero;
+
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
 public class Hero {
-//    private int score;
-//    private int cherry;
-//    private int HighScore;
-//    private int x;
-//    private int y;
+    private int score;
+    private int cherry;
+    private int HighScore;
+    private int x;
+    private int y;
+    private ImageView heroImg;
+
+    public Hero(Image x) {
+        this.heroImg.setImage(x);
+    }
 //
 //    collect_cherry() {
 //        // TODO implement here
