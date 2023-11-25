@@ -10,6 +10,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.transform.Rotate;
 import javafx.util.Duration;
 import javafx.scene.input.MouseEvent;
 
@@ -21,6 +22,7 @@ import java.util.Random;
 
 
 public class PlayController {
+    private Timeline stickGrowTimeline;
     private Cherry cherry;
     private Hero hero;
     private int score;
@@ -79,22 +81,43 @@ public class PlayController {
     private void handleMouseRelease(MouseEvent mouseEvent) {
         long pressTime = System.currentTimeMillis() - pressStartTime;
         pressDuration = pressTime; // Update pressDuration
-        double stickLength = Math.max(pressDuration / 100.0, 50.0); // Use Math.max to ensure a minimum length
-        if (stick != null) {
-            rootPane.getChildren().remove(stick);
-        }
 
-        stick = new Rectangle(5, stickLength, Color.RED);
-//        stick.setTranslateX(heroImg.getTranslateX() + heroImg.getFitWidth() / 2 - stick.getWidth() / 2); // Set the position to the center of the hero character
-//        stick.setTranslateY(heroImg.getTranslateY() - stick.getHeight());
-        stick.setTranslateX(100);
-        stick.setTranslateY(100);
-        rootPane.getChildren().add(stick);
+        // Stop the stick from growing
+        stickGrowTimeline.stop();
+
+        // Create a RotateTransition to rotate the stick
+        RotateTransition rotateTransition = new RotateTransition(Duration.seconds(1), stick);
+        rotateTransition.setByAngle(-90); // Rotate 90 degrees to the left
+        rotateTransition.setCycleCount(1); // Only do the rotation once
+        rotateTransition.setAutoReverse(false); // Do not reverse the rotation
+
+        // Set the pivot points to the lower end of the stick
+        Rotate rotate = new Rotate(0, 0, stick.getHeight());
+        stick.getTransforms().add(rotate);
+        rotate.pivotXProperty().bind(stick.widthProperty().divide(2));
+        rotate.pivotYProperty().bind(stick.heightProperty());
+
+        // Start the rotation
+        rotateTransition.play();
+
         System.out.println("Stick added to the scene");
-        rotateStickAnimation();
     }
     private void handleMousePress(MouseEvent mouseEvent) {
         pressStartTime = System.currentTimeMillis();
+
+        // Create a new stick at the start of the press
+        stick = new Rectangle(5, 0, Color.RED);
+        stick.setTranslateX(heroImg.getLayoutX() + heroImg.getFitWidth()); // Set the base of the stick at the right edge of the character
+        stick.setTranslateY(heroImg.getLayoutY() + heroImg.getFitHeight() ); // Set the base of the stick at the bottom of the character
+        rootPane.getChildren().add(stick);
+
+        // Create a timeline that increases the stick's height every frame
+        stickGrowTimeline = new Timeline(new KeyFrame(Duration.millis(16), event -> {
+            stick.setHeight(stick.getHeight() + 1);
+            stick.setTranslateY(stick.getTranslateY() - 1); // Move the stick up as it grows
+        }));
+        stickGrowTimeline.setCycleCount(Timeline.INDEFINITE);
+        stickGrowTimeline.play();
     }
 
 //    public void stickIncreaseLength() {
