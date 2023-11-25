@@ -77,6 +77,19 @@ public class PlayController {
 //        newPillar = createPillar();
 //        moveLeft();
     }
+    private void moveHeroAcrossStick() {
+        // Calculate the end position of the heroImg
+        double endY = heroImg.getTranslateX() + stick.getHeight() * Math.cos(Math.toRadians(90));
+        double endX = heroImg.getTranslateY() + stick.getHeight() * Math.sin(Math.toRadians(90));
+
+        // Create a TranslateTransition for the heroImg
+        TranslateTransition transition = new TranslateTransition(Duration.seconds(2), heroImg);
+        transition.setToX(endX);
+        transition.setToY(endY);
+
+        // Play the transition
+        transition.play();
+    }
 
     private void handleMouseRelease(MouseEvent mouseEvent) {
         long pressTime = System.currentTimeMillis() - pressStartTime;
@@ -98,6 +111,19 @@ public class PlayController {
                 new KeyFrame(Duration.seconds(1), new KeyValue(rotate.angleProperty(), 90))
         );
         rotateTimeline.play();
+        rotateTimeline.setOnFinished(event -> {
+            // Move the character across the stick
+            moveHeroAcrossStick();
+
+
+            // Check if the character has reached the pillar
+//            if (heroImg.getTranslateX() >= pillar.getTranslateX()) {
+//                System.out.println("Success!");
+//                HeroSuccess(mouseEvent);
+//            } else {
+//                System.out.println("Fail!");
+//            }
+        });
 
         System.out.println("Stick added to the scene");
     }
@@ -107,8 +133,8 @@ public class PlayController {
 
         // Create a new stick at the start of the press
         stick = new Rectangle(5, 0, Color.BLACK);
-        stick.setTranslateX(heroImg.getLayoutX() + heroImg.getFitWidth()); // Set the base of the stick at the right edge of the character
-        stick.setTranslateY(heroImg.getLayoutY() + heroImg.getFitHeight() ); // Set the base of the stick at the bottom of the character
+        stick.setTranslateX(heroImg.getLayoutX() + heroImg.getFitWidth()+5); // Set the base of the stick at the right edge of the character
+        stick.setTranslateY(heroImg.getLayoutY() + heroImg.getFitHeight()-35); // Set the base of the stick at the bottom of the character
         rootPane.getChildren().add(stick);
 
         // Create a timeline that increases the stick's height every frame
