@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.shape.Rectangle?>
 
-
-<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.stick_hero.PlayController">
+<AnchorPane fx:id="rootPane" prefHeight="526.0" prefWidth="641.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.stick_hero.PlayController">
    <children>
-      <ImageView fx:id="heroImg" fitHeight="108.0" fitWidth="99.0" layoutX="100.0" layoutY="69.0" pickOnBounds="true" preserveRatio="true">
+      <ImageView fx:id="heroImg" fitHeight="108.0" fitWidth="99.0" layoutX="35.0" layoutY="228.0" pickOnBounds="true" preserveRatio="true">
       </ImageView>
+      <Rectangle fx:id="pillar" arcHeight="5.0" arcWidth="5.0" fill="DODGERBLUE" height="190.0" layoutY="336.0" stroke="BLACK" strokeType="INSIDE" width="168.0" />
+      <Rectangle fx:id="pillar2" arcHeight="5.0" arcWidth="5.0" fill="DODGERBLUE" height="190.0" layoutX="330.0" layoutY="336.0" stroke="BLACK" strokeType="INSIDE" width="200.0" />
    </children>
 </AnchorPane>
