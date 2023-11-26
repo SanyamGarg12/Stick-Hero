@@ -108,8 +108,32 @@ public class PlayController {
             //create a trashProcess without sleep
 //            loadFrames(false);
         } else {
+            // If the stick length is insufficient to reach pillar2
+            // Create a TranslateTransition for the heroImg
+            // Calculate the end position of the heroImg which is the point off generation of stick + stick length
+            double endX = heroImg.getTranslateX() + stick.getHeight() + heroImg.getFitWidth();
+            double endY = heroImg.getTranslateY();
 
-            throw new HeroFallException();
+            TranslateTransition transition = new TranslateTransition(Duration.seconds(2), heroImg);
+            transition.setToX(endX);
+            transition.setToY(endY);
+            transition.play();
+            transition.setOnFinished(event -> {
+                loadFrames(false);
+//                try {
+//                    throw new HeroFallException();
+//                } catch (HeroFallException e) {
+//                    throw new RuntimeException(e);
+                // Fall the heroImg
+                TranslateTransition fallTransition = new TranslateTransition(Duration.seconds(1), heroImg);
+                fallTransition.setToY(SCENE_HEIGHT - heroImg.getFitHeight());
+                fallTransition.play();
+
+
+
+            });
+
+
         }
     }
 
