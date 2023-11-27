@@ -27,6 +27,7 @@ public class PlayController {
     private Cherry cherry;
     private Hero hero;
     private int score;
+    private boolean motionStarted = false;
     @FXML
     private AnchorPane rootPane;
     @FXML
@@ -45,6 +46,7 @@ public class PlayController {
     ImageView heroImg;
     private int currentFrame = 0;
     private Image[] frames;
+    private boolean upsideDown = false;
     private long lastUpdateTime = 0;  // To track the last time the frame was updated
     private long frameDelay = 100_000_000;  // Delay in nanoseconds (adjust as needed)
 
@@ -73,6 +75,7 @@ public class PlayController {
         rootPane.setOnKeyPressed(event -> handleKeyPress(event.getCode()));
         rootPane.setOnMousePressed(this::handleMousePress);
         rootPane.setOnMouseReleased(this::handleMouseRelease);
+        rootPane.setOnMouseClicked(this::handleMouseClicked);
         AnimationTimer timer = new AnimationTimer() {
             @Override
             public void handle(long now) {
@@ -93,6 +96,7 @@ public class PlayController {
     }
 
     private void moveHeroAcrossStick() throws HeroFallException, InterruptedException {
+        motionStarted = true;
         loadFrames(true);
         // Calculate the distance between the heroImg and pillar2
         if (swap == 0) {
@@ -101,7 +105,7 @@ public class PlayController {
         } else {
             distanceToPillar2 = pillar.getLayoutX() - (pillar2.getLayoutX() + pillar2.getWidth());
         }
-        totaldistance = totaldistance + distanceToPillar2 ;
+        totaldistance = totaldistance + distanceToPillar2;
         System.out.println("distanceToPillar2: " + distanceToPillar2);
         System.out.println("stick length: " + stick.getHeight());
 //        distanceToPillar2 = pillar2.getLayoutX() - (heroImg.getLayoutX() + heroImg.getFitWidth());
@@ -121,15 +125,15 @@ public class PlayController {
                     System.out.println("distanceToPillar2: " + distanceToPillar2);
                     System.out.println("pillar width: " + pillar.getWidth());
                     // Calculate the end position of the heroImg which is the point off generation of stick + stick length
-                    endX = pillar.getLayoutX() - totaldistance -(i-1)*pillar.getWidth() +  2* distanceToPillar2 ;
+                    endX = pillar.getLayoutX() - totaldistance - (i - 1) * pillar.getWidth() + 2 * distanceToPillar2;
                     endY = heroImg.getTranslateY();
                 } else {
                     // Calculate the end position of the heroImg which is the point off generation of stick + stick length
-                    endX = pillar2.getLayoutX() - totaldistance -(i-1)*pillar.getWidth() + 2*distanceToPillar2 ;
+                    endX = pillar2.getLayoutX() - totaldistance - (i - 1) * pillar.getWidth() + 2 * distanceToPillar2;
                     endY = heroImg.getTranslateY();
                 }
             }
-            System.out.println("endX: " + endX);
+//            System.out.println("endX: " + endX);
             // Create a TranslateTransition for the heroImg
             TranslateTransition transition = new TranslateTransition(Duration.seconds(2), heroImg);
             transition.setToX(endX);
@@ -174,6 +178,19 @@ public class PlayController {
         }
     }
 
+    public void handleMouseClicked(MouseEvent mouseEvent) {
+        if (!motionStarted) {
+            return;
+        }
+        Rotate rotate = new Rotate(180, heroImg.getFitWidth() / 2, heroImg.getFitHeight() / 2);
+        heroImg.getTransforms().add(rotate);
+        if (!upsideDown) {
+            upsideDown = true;
+        } else {
+            upsideDown = false;
+        }
+    }
+
     private void ShiftScene() {
         moveLeft();
         tpPillar();
@@ -181,6 +198,8 @@ public class PlayController {
 //        pillar.setTranslateX(pillar.getLayoutX());
         isSceneShifted = false;
         i++;
+        //remove the stick
+        rootPane.getChildren().remove(stick);
     }
 
     private void handleMouseRelease(MouseEvent mouseEvent) {
@@ -247,11 +266,11 @@ public class PlayController {
         } else {
             if (swap == 0) {
                 // Set the base of the stick at the right edge of the character
-                stick.setTranslateX(pillar.getLayoutX() - totaldistance -(i-1)*pillar.getWidth()- 1);
+                stick.setTranslateX(pillar.getLayoutX() - totaldistance - (i - 1) * pillar.getWidth() - 1);
 
             } else {
                 System.out.println("swap");
-                stick.setTranslateX(pillar2.getLayoutX() - totaldistance -(i-1)*pillar.getWidth() - 1); // Set the base of the stick at the right edge of the character
+                stick.setTranslateX(pillar2.getLayoutX() - totaldistance - (i - 1) * pillar.getWidth() - 1); // Set the base of the stick at the right edge of the character
             }
         }
 //        stick.setTranslateX(pillar.getTranslateX() + pillar.getWidth()); // Set the base of the stick at the right edge of the character
@@ -272,6 +291,7 @@ public class PlayController {
 //    }
 
     private void HeroSuccess() {
+        this.motionStarted = false;
 //        newPillar = createPillar();
         if (swap == 0) {
 //            pillar = createPillar();
