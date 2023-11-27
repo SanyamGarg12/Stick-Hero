@@ -60,6 +60,7 @@ public class PlayController {
     private boolean isFirstTime2 = true;
     private double totaldistance = 0;
     private int i = 0;
+    private double distancMoved = 0;
 
 
     @FXML
@@ -110,7 +111,7 @@ public class PlayController {
         System.out.println("stick length: " + stick.getHeight());
 //        distanceToPillar2 = pillar2.getLayoutX() - (heroImg.getLayoutX() + heroImg.getFitWidth());
         // If the stick length is sufficient to reach pillar2
-        if (stick.getHeight() >= distanceToPillar2) {
+        if (stick.getHeight() >= distanceToPillar2 && stick.getHeight() <= distanceToPillar2 + pillar.getWidth()) {
             double endX;
             double endY;
             if (isFirstTime2) {
@@ -120,10 +121,6 @@ public class PlayController {
                 // Calculate the end position of the heroImg
             } else {
                 if (swap == 0) {
-                    System.out.println("pillar: " + pillar.getLayoutX());
-                    System.out.println("pillar2: " + pillar2.getLayoutX());
-                    System.out.println("distanceToPillar2: " + distanceToPillar2);
-                    System.out.println("pillar width: " + pillar.getWidth());
                     // Calculate the end position of the heroImg which is the point off generation of stick + stick length
                     endX = pillar.getLayoutX() - totaldistance - (i - 1) * pillar.getWidth() + 2 * distanceToPillar2;
                     endY = heroImg.getTranslateY();
@@ -132,15 +129,45 @@ public class PlayController {
                     endX = pillar2.getLayoutX() - totaldistance - (i - 1) * pillar.getWidth() + 2 * distanceToPillar2;
                     endY = heroImg.getTranslateY();
                 }
-            }
+            }//add distance moved by hero to distance moved
+            distancMoved = distancMoved + (endX - heroImg.getTranslateX());
 //            System.out.println("endX: " + endX);
             // Create a TranslateTransition for the heroImg
             TranslateTransition transition = new TranslateTransition(Duration.seconds(2), heroImg);
             transition.setToX(endX);
             transition.setToY(endY);
+            heroImg.translateXProperty().addListener((observable) -> {
+                // Check if the hero is upside down and if it has stumbled upon the pillar
+                if (swap == 0) {
+                    if (upsideDown && pillar.getLayoutX() + pillar.getWidth() + heroImg.getTranslateX() >= pillar2.getLayoutX() + heroImg.getFitWidth() / 2) {
+                        // Stop the transition
+                        transition.stop();
+                        loadFrames(false);
 
+                        // Make the hero fall
+                        TranslateTransition fallTransition = new TranslateTransition(Duration.seconds(1), heroImg);
+                        fallTransition.setToY(SCENE_HEIGHT - heroImg.getFitHeight());
+                        fallTransition.play();
+                    }
+                } else {
+                    System.out.println("h" + heroImg.getTranslateX());
+                    System.out.println("p" + pillar.getLayoutX());
+                    System.out.println("distanceMoved" + distancMoved);
+                    if (upsideDown && pillar2.getLayoutX() + pillar2.getWidth() + heroImg.getTranslateX() >= pillar.getLayoutX() + heroImg.getFitWidth() / 2) {
+                        // Stop the transition
+                        transition.stop();
+                        loadFrames(false);
+
+                        // Make the hero fall
+                        TranslateTransition fallTransition = new TranslateTransition(Duration.seconds(1), heroImg);
+                        fallTransition.setToY(SCENE_HEIGHT - heroImg.getFitHeight());
+                        fallTransition.play();
+                    }
+                }
+            });
             // Play the transition
             transition.play();
+
             transition.setOnFinished(event -> {
                 // Load the standing frames after the hero has moved
                 loadFrames(false);
@@ -182,7 +209,7 @@ public class PlayController {
         if (!motionStarted) {
             return;
         }
-        Rotate rotate = new Rotate(180, heroImg.getFitWidth() / 2, heroImg.getFitHeight() / 2);
+        Rotate rotate = new Rotate(180, heroImg.getFitWidth() / 2, heroImg.getFitHeight() * 2 / 3);
         heroImg.getTransforms().add(rotate);
         if (!upsideDown) {
             upsideDown = true;
@@ -319,7 +346,6 @@ public class PlayController {
             transition4.setToX(stick.getTranslateX() - distanceToPillar2 - pillar2.getWidth());
             transition2.setToX(heroImg.getTranslateX() - distanceToPillar2 - pillar2.getWidth());
             transition3.setToX(pillar2.getTranslateX() - distanceToPillar2 - pillar2.getWidth());
-
         }
         transition.play();
         transition3.play();
