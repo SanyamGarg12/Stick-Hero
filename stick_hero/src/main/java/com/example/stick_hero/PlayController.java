@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
 
+import static java.lang.Thread.sleep;
 
 
 public class PlayController {
@@ -50,12 +51,15 @@ public class PlayController {
     private long pressStartTime = 0;
     private double pressDuration = 0;
     private Rectangle stick;
+    private double distanceToPillar2;
 
     @FXML
     public void initialize() {
 //        Image newimg = new Image(getClass().getResourceAsStream("/Assets/chr0.png"));
-        loadFrames();
-
+//        loadFrames();
+//
+//        heroImg.setImage(getClass().getResourceAsStream("/Assets/chr0.png"));
+        loadFrames(false);
         rootPane.setOnKeyPressed(event -> handleKeyPress(event.getCode()));
         rootPane.setOnMousePressed(this::handleMousePress);
         rootPane.setOnMouseReleased(this::handleMouseRelease);
@@ -77,18 +81,65 @@ public class PlayController {
 //        newPillar = createPillar();
 //        moveLeft();
     }
-    private void moveHeroAcrossStick() {
-        // Calculate the end position of the heroImg
-        double endY = heroImg.getTranslateX() + stick.getHeight() * Math.cos(Math.toRadians(90));
-        double endX = heroImg.getTranslateY() + stick.getHeight() * Math.sin(Math.toRadians(90));
 
-        // Create a TranslateTransition for the heroImg
-        TranslateTransition transition = new TranslateTransition(Duration.seconds(2), heroImg);
-        transition.setToX(endX);
-        transition.setToY(endY);
+    private void moveHeroAcrossStick() throws HeroFallException, InterruptedException {
+        loadFrames(true);
+        // Calculate the distance between the heroImg and pillar2
+        distanceToPillar2 = pillar2.getLayoutX() - (heroImg.getLayoutX() + heroImg.getFitWidth());
+        // If the stick length is sufficient to reach pillar2
+        if (stick.getHeight() >= distanceToPillar2) {
+            // Calculate the end position of the heroImg
+            double endX = pillar2.getLayoutX() + pillar2.getWidth() - distanceToPillar2;
+            double endY = heroImg.getTranslateY();
 
-        // Play the transition
-        transition.play();
+            // Create a TranslateTransition for the heroImg
+            TranslateTransition transition = new TranslateTransition(Duration.seconds(2), heroImg);
+            transition.setToX(endX);
+            transition.setToY(endY);
+
+            // Play the transition
+            transition.play();
+            transition.setOnFinished(event -> {
+                // Load the standing frames after the hero has moved
+                loadFrames(false);
+                HeroSuccess();
+                ShiftScene();
+            });
+            //create a trashProcess without sleep
+//            loadFrames(false);
+        } else {
+            // If the stick length is insufficient to reach pillar2
+            // Create a TranslateTransition for the heroImg
+            // Calculate the end position of the heroImg which is the point off generation of stick + stick length
+            double endX = heroImg.getTranslateX() + stick.getHeight() + heroImg.getFitWidth();
+            double endY = heroImg.getTranslateY();
+
+            TranslateTransition transition = new TranslateTransition(Duration.seconds(2), heroImg);
+            transition.setToX(endX);
+            transition.setToY(endY);
+            transition.play();
+            transition.setOnFinished(event -> {
+                loadFrames(false);
+//                try {
+//                    throw new HeroFallException();
+//                } catch (HeroFallException e) {
+//                    throw new RuntimeException(e);
+                // Fall the heroImg
+                TranslateTransition fallTransition = new TranslateTransition(Duration.seconds(1), heroImg);
+                fallTransition.setToY(SCENE_HEIGHT - heroImg.getFitHeight());
+                fallTransition.play();
+
+
+
+            });
+
+
+        }
+    }
+
+    private void ShiftScene() {
+        moveLeft();
+        tpPillar();
     }
 
     private void handleMouseRelease(MouseEvent mouseEvent) {
@@ -113,8 +164,13 @@ public class PlayController {
         rotateTimeline.play();
         rotateTimeline.setOnFinished(event -> {
             // Move the character across the stick
-            moveHeroAcrossStick();
-
+            try {
+                moveHeroAcrossStick();
+//                sleep(2000);
+//                loadFrames(false);
+            } catch (HeroFallException | InterruptedException e) {
+                e.printStackTrace();
+            }
 
             // Check if the character has reached the pillar
 //            if (heroImg.getTranslateX() >= pillar.getTranslateX()) {
@@ -122,8 +178,9 @@ public class PlayController {
 //                HeroSuccess(mouseEvent);
 //            } else {
 //                System.out.println("Fail!");
-//            }
+//         }
         });
+
 
         System.out.println("Stick added to the scene");
     }
@@ -133,8 +190,8 @@ public class PlayController {
 
         // Create a new stick at the start of the press
         stick = new Rectangle(5, 0, Color.BLACK);
-        stick.setTranslateX(heroImg.getLayoutX() + heroImg.getFitWidth()+5); // Set the base of the stick at the right edge of the character
-        stick.setTranslateY(heroImg.getLayoutY() + heroImg.getFitHeight()-35); // Set the base of the stick at the bottom of the character
+        stick.setTranslateX(heroImg.getLayoutX() + heroImg.getFitWidth() + 5); // Set the base of the stick at the right edge of the character
+        stick.setTranslateY(heroImg.getLayoutY() + heroImg.getFitHeight() - 35); // Set the base of the stick at the bottom of the character
         rootPane.getChildren().add(stick);
 
         // Create a timeline that increases the stick's height every frame
@@ -150,13 +207,12 @@ public class PlayController {
 //        this.stick.set_length(this.stick.get_length() + 1);
 //    }
 
-    private void HeroSuccess(ActionEvent e) {
+    private void HeroSuccess() {
 //        newPillar = createPillar();
-        if(swap == 0) {
+        if (swap == 0) {
 //            pillar = createPillar();
             swap = 1;
-        }
-        else {
+        } else {
 //            pillar2 = createPillar();
             swap = 0;
         }
@@ -170,59 +226,91 @@ public class PlayController {
         return pillarr;
     }
 
-    public void moveLeft1() {
-        TranslateTransition transition = new TranslateTransition(Duration.seconds(1), pillar);
-        TranslateTransition transition2 = new TranslateTransition(Duration.seconds(1), heroImg);
-
-        transition.setToX(pillar.getTranslateX() + 100); // Adjust the distance as needed
-        transition2.setToX(heroImg.getTranslateX() + 100); // Adjust the distance as needed
-        transition.play();
-        transition2.play();
-    }
-    public void moveLeft2() {
+    public void moveLeft() {
         TranslateTransition transition = new TranslateTransition(Duration.seconds(1), pillar2);
+        TranslateTransition transition3 = new TranslateTransition(Duration.seconds(1), pillar);
+        TranslateTransition transition4 = new TranslateTransition(Duration.seconds(1), stick);
         TranslateTransition transition2 = new TranslateTransition(Duration.seconds(1), heroImg);
 
-        transition.setToX(pillar2.getTranslateX() + 100); // Adjust the distance as needed
-        transition2.setToX(heroImg.getTranslateX() + 100); // Adjust the distance as needed
+        transition.setToX(pillar2.getTranslateX() - distanceToPillar2 - pillar.getWidth()); // Adjust the distance as needed
+        // also move the stick and heroImg
+        transition4.setToX(stick.getTranslateX() - distanceToPillar2 - pillar.getWidth());
+        transition2.setToX(heroImg.getTranslateX() - distanceToPillar2 - pillar.getWidth());
+        transition3.setToX(pillar.getTranslateX() - distanceToPillar2 - pillar.getWidth());
         transition.play();
+        transition3.play();
+        transition4.play();
         transition2.play();
     }
+
     public void tpPillar() {
-        if (swap == 0) {
-//            moveLeft1();
-            pillar.setLayoutX(500);
-            pillar.setLayoutY(100);
-        }
-        else {
-//            moveLeft2();
-            pillar2.setLayoutX(500);
-            pillar2.setLayoutY(100);
+        Random random = new Random();
+        if (swap != 0) {
+            double gap = SCENE_WIDTH - ( pillar2.getWidth());
+            System.out.println(gap);
+            // Generate a random value within the gap
+            double randomX = pillar2.getLayoutX() + pillar2.getWidth() + random.nextDouble() * gap;
+            // Set the X position of the pillar
+            System.out.println(randomX);
+            pillar.setLayoutX(randomX);
+            pillar.setLayoutY(336);
+            // set random width
+            pillar.setWidth(random.nextDouble() * 200 + PILLAR_WIDTH);
+        } else {
+            double gap = SCENE_WIDTH - ( pillar.getWidth());
+            System.out.println(gap);
+            // Generate a random value within the gap
+            double randomX = pillar.getLayoutX() + pillar.getWidth() + random.nextDouble() * gap;
+            // Set the X position of the pillar
+            System.out.println(randomX);
+            pillar2.setLayoutX(randomX);
+            pillar2.setLayoutY(336);
+            // set random width
+            pillar2.setWidth(random.nextDouble() * 200 + PILLAR_WIDTH );
         }
 
     }
-    public void heromove(){
+
+    public void heromove() {
 
     }
-    private void loadFrames() {
+
+    private void loadFrames(boolean isMoving) {
         frames = new Image[13];
-        for (int i = 0; i <= 12; i++) {
-            String imagePath = "/Assets/chr" + i + ".png";
-            try (InputStream stream = getClass().getResourceAsStream(imagePath)) {
-                if (stream != null) {
-                    frames[i] = new Image(stream);
-                } else {
-                    System.out.println("Failed to load image: " + imagePath);
+        if (isMoving) {
+            for (int i = 0; i <= 12; i++) {
+                String imagePath = "/Assets/chr" + i + ".png";
+                try (InputStream stream = getClass().getResourceAsStream(imagePath)) {
+                    if (stream != null) {
+                        frames[i] = new Image(stream);
+                    } else {
+                        System.out.println("Failed to load image: " + imagePath);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+            }
+        } else {
+            for (int i = 0; i <= 12; i++) {
+                String imagePath = "/Assets/chr" + 0 + ".png";
+                try (InputStream stream = getClass().getResourceAsStream(imagePath)) {
+                    if (stream != null) {
+                        frames[i] = new Image(stream);
+                    } else {
+                        System.out.println("Failed to load image: " + imagePath);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
+
     private void updateAnimation() {
         currentFrame = (currentFrame + 1) % frames.length;
         heroImg.setImage(frames[currentFrame]);
     }
+
     private void rotateStickAnimation() {
         // Rotate the stick from vertical to horizontal
         stick.setRotate(90);
@@ -243,6 +331,7 @@ public class PlayController {
         Timeline timeline = new Timeline(keyFrame);
         timeline.play();
     }
+
     private void handleKeyPress(KeyCode code) {
         switch (code) {
             case RIGHT:
