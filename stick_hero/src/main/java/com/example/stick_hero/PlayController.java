@@ -57,9 +57,7 @@ public class PlayController {
     private boolean isFirstTime = true;
     private boolean isFirstTime2 = true;
     private double totaldistance = 0;
-    private int i=0;
-
-
+    private int i = 0;
 
 
     @FXML
@@ -97,13 +95,13 @@ public class PlayController {
     private void moveHeroAcrossStick() throws HeroFallException, InterruptedException {
         loadFrames(true);
         // Calculate the distance between the heroImg and pillar2
-        if(swap == 0) {
+        if (swap == 0) {
 //            heroImg.setTranslateX(pillar.getTranslateX() + pillar.getWidth());
-            distanceToPillar2 = pillar2.getLayoutX() - (pillar.getLayoutX() + pillar.getWidth() );
-        }else {
-            distanceToPillar2 = pillar.getLayoutX() - (pillar2.getLayoutX() + pillar2.getWidth() );
+            distanceToPillar2 = pillar2.getLayoutX() - (pillar.getLayoutX() + pillar.getWidth());
+        } else {
+            distanceToPillar2 = pillar.getLayoutX() - (pillar2.getLayoutX() + pillar2.getWidth());
         }
-        totaldistance = totaldistance + distanceToPillar2 + i * pillar.getWidth();
+        totaldistance = totaldistance + distanceToPillar2 ;
         System.out.println("distanceToPillar2: " + distanceToPillar2);
         System.out.println("stick length: " + stick.getHeight());
 //        distanceToPillar2 = pillar2.getLayoutX() - (heroImg.getLayoutX() + heroImg.getFitWidth());
@@ -111,19 +109,23 @@ public class PlayController {
         if (stick.getHeight() >= distanceToPillar2) {
             double endX;
             double endY;
-            if(isFirstTime2 ) {
+            if (isFirstTime2) {
                 endX = pillar2.getLayoutX();
                 endY = heroImg.getTranslateY();
                 isFirstTime2 = false;
                 // Calculate the end position of the heroImg
-            }else {
+            } else {
                 if (swap == 0) {
+                    System.out.println("pillar: " + pillar.getLayoutX());
+                    System.out.println("pillar2: " + pillar2.getLayoutX());
+                    System.out.println("distanceToPillar2: " + distanceToPillar2);
+                    System.out.println("pillar width: " + pillar.getWidth());
                     // Calculate the end position of the heroImg which is the point off generation of stick + stick length
-                    endX = pillar.getLayoutX() + distanceToPillar2 - pillar.getWidth();
+                    endX = pillar.getLayoutX() - totaldistance -(i-1)*pillar.getWidth() +  2* distanceToPillar2 ;
                     endY = heroImg.getTranslateY();
                 } else {
                     // Calculate the end position of the heroImg which is the point off generation of stick + stick length
-                    endX = pillar2.getLayoutX() + distanceToPillar2 - pillar2.getWidth();
+                    endX = pillar2.getLayoutX() - totaldistance -(i-1)*pillar.getWidth() + 2*distanceToPillar2 ;
                     endY = heroImg.getTranslateY();
                 }
             }
@@ -166,7 +168,6 @@ public class PlayController {
                 fallTransition.play();
 
 
-
             });
 
 
@@ -183,7 +184,7 @@ public class PlayController {
     }
 
     private void handleMouseRelease(MouseEvent mouseEvent) {
-        if(!isMousePressed) {
+        if (!isMousePressed) {
             return;
         }
         isMousePressed = false;
@@ -231,7 +232,7 @@ public class PlayController {
     }
 
     private void handleMousePress(MouseEvent mouseEvent) {
-        if(isSceneShifted) {
+        if (isSceneShifted) {
             return;
         }
 //        isSceneShifted = true;
@@ -240,18 +241,17 @@ public class PlayController {
 
         // Create a new stick at the start of the press
         stick = new Rectangle(5, 0, Color.BLACK);
-        if(isFirstTime){
-            stick.setTranslateX(pillar.getLayoutX()+ pillar.getWidth()); // Set the base of the stick at the right edge of the character
+        if (isFirstTime) {
+            stick.setTranslateX(pillar.getLayoutX() + pillar.getWidth() - 1); // Set the base of the stick at the right edge of the character
             isFirstTime = false;
-        }
-        else {
+        } else {
             if (swap == 0) {
                 // Set the base of the stick at the right edge of the character
-                stick.setTranslateX(pillar.getLayoutX()  - totaldistance);
+                stick.setTranslateX(pillar.getLayoutX() - totaldistance -(i-1)*pillar.getWidth()- 1);
 
             } else {
                 System.out.println("swap");
-                stick.setTranslateX(pillar2.getLayoutX()  - totaldistance); // Set the base of the stick at the right edge of the character
+                stick.setTranslateX(pillar2.getLayoutX() - totaldistance -(i-1)*pillar.getWidth() - 1); // Set the base of the stick at the right edge of the character
             }
         }
 //        stick.setTranslateX(pillar.getTranslateX() + pillar.getWidth()); // Set the base of the stick at the right edge of the character
@@ -259,7 +259,7 @@ public class PlayController {
         rootPane.getChildren().add(stick);
 
         // Create a timeline that increases the stick's height every frame
-        stickGrowTimeline = new Timeline(new KeyFrame(Duration.millis(16), event -> {
+        stickGrowTimeline = new Timeline(new KeyFrame(Duration.millis(5), event -> {
             stick.setHeight(stick.getHeight() + 1);
             stick.setTranslateY(stick.getTranslateY() - 1); // Move the stick up as it grows
         }));
@@ -282,26 +282,18 @@ public class PlayController {
         }
     }
 
-    private Pillar createPillar() {
-        double pillarY = random.nextDouble() * (SCENE_HEIGHT - PILLAR_GAP - PILLAR_HEIGHT);
-        Pillar pillarr = new Pillar(random.nextDouble() * 50 + PILLAR_WIDTH, PILLAR_HEIGHT);
-        pillarr.setLayoutX(SCENE_WIDTH);
-        pillarr.setLayoutY(pillarY);
-        return pillarr;
-    }
-
     public void moveLeft() {
         TranslateTransition transition = new TranslateTransition(Duration.seconds(1), pillar2);
         TranslateTransition transition3 = new TranslateTransition(Duration.seconds(1), pillar);
         TranslateTransition transition4 = new TranslateTransition(Duration.seconds(1), stick);
         TranslateTransition transition2 = new TranslateTransition(Duration.seconds(1), heroImg);
-        if(swap == 0 ) {
+        if (swap == 0) {
             transition.setToX(pillar2.getTranslateX() - distanceToPillar2 - pillar.getWidth()); // Adjust the distance as needed
             // also move the stick and heroImg
             transition4.setToX(stick.getTranslateX() - distanceToPillar2 - pillar.getWidth());
             transition2.setToX(heroImg.getTranslateX() - distanceToPillar2 - pillar.getWidth());
             transition3.setToX(pillar.getTranslateX() - distanceToPillar2 - pillar.getWidth());
-        }else {
+        } else {
             transition.setToX(pillar.getTranslateX() - distanceToPillar2 - pillar2.getWidth()); // Adjust the distance as needed
             // also move the stick and heroImg
             transition4.setToX(stick.getTranslateX() - distanceToPillar2 - pillar2.getWidth());
@@ -320,7 +312,7 @@ public class PlayController {
     public void tpPillar() {
         Random random = new Random();
         if (swap != 0) {
-            double gap = SCENE_WIDTH - ( pillar2.getWidth());
+            double gap = SCENE_WIDTH - (pillar2.getWidth());
             System.out.println(gap);
             // Generate a random value within the gap
             double randomX = pillar2.getLayoutX() + pillar2.getWidth() + random.nextDouble() * gap;
@@ -331,7 +323,7 @@ public class PlayController {
             // set random width
 //            pillar.setWidth(random.nextDouble() * 200 + PILLAR_WIDTH);
         } else {
-            double gap = SCENE_WIDTH - ( pillar.getWidth());
+            double gap = SCENE_WIDTH - (pillar.getWidth());
 //            System.out.println();
             // Generate a random value within the gap
             double randomX = pillar.getLayoutX() + pillar.getWidth() + random.nextDouble() * gap;
