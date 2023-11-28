@@ -27,6 +27,7 @@ public class PlayController {
     private Cherry cherry;
     private Hero hero;
     private int score;
+    private boolean motionStarted = false;
     @FXML
     private AnchorPane rootPane;
     @FXML
@@ -45,6 +46,7 @@ public class PlayController {
     ImageView heroImg;
     private int currentFrame = 0;
     private Image[] frames;
+    private boolean upsideDown = false;
     private long lastUpdateTime = 0;  // To track the last time the frame was updated
     private long frameDelay = 100_000_000;  // Delay in nanoseconds (adjust as needed)
 
@@ -52,6 +54,14 @@ public class PlayController {
     private double pressDuration = 0;
     private Rectangle stick;
     private double distanceToPillar2;
+    private boolean isSceneShifted = false;
+    private boolean isMousePressed = false;
+    private boolean isFirstTime = true;
+    private boolean isFirstTime2 = true;
+    private double totaldistance = 0;
+    private int i = 0;
+    private double distancMoved = 0;
+
 
     @FXML
     public void initialize() {
@@ -59,10 +69,14 @@ public class PlayController {
 //        loadFrames();
 //
 //        heroImg.setImage(getClass().getResourceAsStream("/Assets/chr0.png"));
+//        heroImg.setTranslateX(pillar.getLayoutX());
+//        pillar.setTranslateX(pillar.getLayoutX());
+//        pillar2.setTranslateX(pillar2.getLayoutX());
         loadFrames(false);
         rootPane.setOnKeyPressed(event -> handleKeyPress(event.getCode()));
         rootPane.setOnMousePressed(this::handleMousePress);
         rootPane.setOnMouseReleased(this::handleMouseRelease);
+        rootPane.setOnMouseClicked(this::handleMouseClicked);
         AnimationTimer timer = new AnimationTimer() {
             @Override
             public void handle(long now) {
@@ -83,22 +97,77 @@ public class PlayController {
     }
 
     private void moveHeroAcrossStick() throws HeroFallException, InterruptedException {
+        motionStarted = true;
         loadFrames(true);
         // Calculate the distance between the heroImg and pillar2
-        distanceToPillar2 = pillar2.getLayoutX() - (heroImg.getLayoutX() + heroImg.getFitWidth());
+        if (swap == 0) {
+//            heroImg.setTranslateX(pillar.getTranslateX() + pillar.getWidth());
+            distanceToPillar2 = pillar2.getLayoutX() - (pillar.getLayoutX() + pillar.getWidth());
+        } else {
+            distanceToPillar2 = pillar.getLayoutX() - (pillar2.getLayoutX() + pillar2.getWidth());
+        }
+        totaldistance = totaldistance + distanceToPillar2;
+        System.out.println("distanceToPillar2: " + distanceToPillar2);
+        System.out.println("stick length: " + stick.getHeight());
+//        distanceToPillar2 = pillar2.getLayoutX() - (heroImg.getLayoutX() + heroImg.getFitWidth());
         // If the stick length is sufficient to reach pillar2
-        if (stick.getHeight() >= distanceToPillar2) {
-            // Calculate the end position of the heroImg
-            double endX = pillar2.getLayoutX() + pillar2.getWidth() - distanceToPillar2;
-            double endY = heroImg.getTranslateY();
-
+        if (stick.getHeight() >= distanceToPillar2 && stick.getHeight() <= distanceToPillar2 + pillar.getWidth()) {
+            double endX;
+            double endY;
+            if (isFirstTime2) {
+                endX = pillar2.getLayoutX();
+                endY = heroImg.getTranslateY();
+                isFirstTime2 = false;
+                // Calculate the end position of the heroImg
+            } else {
+                if (swap == 0) {
+                    // Calculate the end position of the heroImg which is the point off generation of stick + stick length
+                    endX = pillar.getLayoutX() - totaldistance - (i - 1) * pillar.getWidth() + 2 * distanceToPillar2;
+                    endY = heroImg.getTranslateY();
+                } else {
+                    // Calculate the end position of the heroImg which is the point off generation of stick + stick length
+                    endX = pillar2.getLayoutX() - totaldistance - (i - 1) * pillar.getWidth() + 2 * distanceToPillar2;
+                    endY = heroImg.getTranslateY();
+                }
+            }//add distance moved by hero to distance moved
+            distancMoved = distancMoved + (endX - heroImg.getTranslateX());
+//            System.out.println("endX: " + endX);
             // Create a TranslateTransition for the heroImg
             TranslateTransition transition = new TranslateTransition(Duration.seconds(2), heroImg);
             transition.setToX(endX);
             transition.setToY(endY);
+            heroImg.translateXProperty().addListener((observable) -> {
+                // Check if the hero is upside down and if it has stumbled upon the pillar
+                if (swap == 0) {
+                    if (upsideDown && pillar.getLayoutX() + pillar.getWidth() + heroImg.getTranslateX() >= pillar2.getLayoutX() + heroImg.getFitWidth() / 2) {
+                        // Stop the transition
+                        transition.stop();
+                        loadFrames(false);
 
+                        // Make the hero fall
+                        TranslateTransition fallTransition = new TranslateTransition(Duration.seconds(1), heroImg);
+                        fallTransition.setToY(SCENE_HEIGHT - heroImg.getFitHeight());
+                        fallTransition.play();
+                    }
+                } else {
+                    System.out.println("h" + heroImg.getTranslateX());
+                    System.out.println("p" + pillar.getLayoutX());
+                    System.out.println("distanceMoved" + distancMoved);
+                    if (upsideDown && pillar2.getLayoutX() + pillar2.getWidth() + heroImg.getTranslateX() >= pillar.getLayoutX() + heroImg.getFitWidth() / 2) {
+                        // Stop the transition
+                        transition.stop();
+                        loadFrames(false);
+
+                        // Make the hero fall
+                        TranslateTransition fallTransition = new TranslateTransition(Duration.seconds(1), heroImg);
+                        fallTransition.setToY(SCENE_HEIGHT - heroImg.getFitHeight());
+                        fallTransition.play();
+                    }
+                }
+            });
             // Play the transition
             transition.play();
+
             transition.setOnFinished(event -> {
                 // Load the standing frames after the hero has moved
                 loadFrames(false);
@@ -130,19 +199,42 @@ public class PlayController {
                 fallTransition.play();
 
 
-
             });
 
 
         }
     }
 
+    public void handleMouseClicked(MouseEvent mouseEvent) {
+        if (!motionStarted) {
+            return;
+        }
+        Rotate rotate = new Rotate(180, heroImg.getFitWidth() / 2, heroImg.getFitHeight() * 2 / 3);
+        heroImg.getTransforms().add(rotate);
+        if (!upsideDown) {
+            upsideDown = true;
+        } else {
+            upsideDown = false;
+        }
+    }
+
     private void ShiftScene() {
         moveLeft();
         tpPillar();
+//        pillar2.setTranslateX(pillar2.getLayoutX());
+//        pillar.setTranslateX(pillar.getLayoutX());
+        isSceneShifted = false;
+        i++;
+        //remove the stick
+        rootPane.getChildren().remove(stick);
     }
 
     private void handleMouseRelease(MouseEvent mouseEvent) {
+        if (!isMousePressed) {
+            return;
+        }
+        isMousePressed = false;
+        isSceneShifted = true;
         long pressTime = System.currentTimeMillis() - pressStartTime;
         pressDuration = pressTime; // Update pressDuration
 
@@ -186,16 +278,34 @@ public class PlayController {
     }
 
     private void handleMousePress(MouseEvent mouseEvent) {
+        if (isSceneShifted) {
+            return;
+        }
+//        isSceneShifted = true;
+        isMousePressed = true;
         pressStartTime = System.currentTimeMillis();
 
         // Create a new stick at the start of the press
         stick = new Rectangle(5, 0, Color.BLACK);
-        stick.setTranslateX(heroImg.getLayoutX() + heroImg.getFitWidth() + 5); // Set the base of the stick at the right edge of the character
+        if (isFirstTime) {
+            stick.setTranslateX(pillar.getLayoutX() + pillar.getWidth() - 1); // Set the base of the stick at the right edge of the character
+            isFirstTime = false;
+        } else {
+            if (swap == 0) {
+                // Set the base of the stick at the right edge of the character
+                stick.setTranslateX(pillar.getLayoutX() - totaldistance - (i - 1) * pillar.getWidth() - 1);
+
+            } else {
+                System.out.println("swap");
+                stick.setTranslateX(pillar2.getLayoutX() - totaldistance - (i - 1) * pillar.getWidth() - 1); // Set the base of the stick at the right edge of the character
+            }
+        }
+//        stick.setTranslateX(pillar.getTranslateX() + pillar.getWidth()); // Set the base of the stick at the right edge of the character
         stick.setTranslateY(heroImg.getLayoutY() + heroImg.getFitHeight() - 35); // Set the base of the stick at the bottom of the character
         rootPane.getChildren().add(stick);
 
         // Create a timeline that increases the stick's height every frame
-        stickGrowTimeline = new Timeline(new KeyFrame(Duration.millis(16), event -> {
+        stickGrowTimeline = new Timeline(new KeyFrame(Duration.millis(5), event -> {
             stick.setHeight(stick.getHeight() + 1);
             stick.setTranslateY(stick.getTranslateY() - 1); // Move the stick up as it grows
         }));
@@ -208,6 +318,7 @@ public class PlayController {
 //    }
 
     private void HeroSuccess() {
+        this.motionStarted = false;
 //        newPillar = createPillar();
         if (swap == 0) {
 //            pillar = createPillar();
@@ -218,35 +329,36 @@ public class PlayController {
         }
     }
 
-    private Pillar createPillar() {
-        double pillarY = random.nextDouble() * (SCENE_HEIGHT - PILLAR_GAP - PILLAR_HEIGHT);
-        Pillar pillarr = new Pillar(random.nextDouble() * 50 + PILLAR_WIDTH, PILLAR_HEIGHT);
-        pillarr.setLayoutX(SCENE_WIDTH);
-        pillarr.setLayoutY(pillarY);
-        return pillarr;
-    }
-
     public void moveLeft() {
         TranslateTransition transition = new TranslateTransition(Duration.seconds(1), pillar2);
         TranslateTransition transition3 = new TranslateTransition(Duration.seconds(1), pillar);
         TranslateTransition transition4 = new TranslateTransition(Duration.seconds(1), stick);
         TranslateTransition transition2 = new TranslateTransition(Duration.seconds(1), heroImg);
-
-        transition.setToX(pillar2.getTranslateX() - distanceToPillar2 - pillar.getWidth()); // Adjust the distance as needed
-        // also move the stick and heroImg
-        transition4.setToX(stick.getTranslateX() - distanceToPillar2 - pillar.getWidth());
-        transition2.setToX(heroImg.getTranslateX() - distanceToPillar2 - pillar.getWidth());
-        transition3.setToX(pillar.getTranslateX() - distanceToPillar2 - pillar.getWidth());
+        if (swap == 0) {
+            transition.setToX(pillar2.getTranslateX() - distanceToPillar2 - pillar.getWidth()); // Adjust the distance as needed
+            // also move the stick and heroImg
+            transition4.setToX(stick.getTranslateX() - distanceToPillar2 - pillar.getWidth());
+            transition2.setToX(heroImg.getTranslateX() - distanceToPillar2 - pillar.getWidth());
+            transition3.setToX(pillar.getTranslateX() - distanceToPillar2 - pillar.getWidth());
+        } else {
+            transition.setToX(pillar.getTranslateX() - distanceToPillar2 - pillar2.getWidth()); // Adjust the distance as needed
+            // also move the stick and heroImg
+            transition4.setToX(stick.getTranslateX() - distanceToPillar2 - pillar2.getWidth());
+            transition2.setToX(heroImg.getTranslateX() - distanceToPillar2 - pillar2.getWidth());
+            transition3.setToX(pillar2.getTranslateX() - distanceToPillar2 - pillar2.getWidth());
+        }
         transition.play();
         transition3.play();
         transition4.play();
         transition2.play();
+//        pillar2.setLayoutX(pillar2.getLayoutX() - distanceToPillar2 - pillar2.getWidth());
+//        pillar.setLayoutX(pillar.getLayoutX() - distanceToPillar2 - pillar.getWidth());
     }
 
     public void tpPillar() {
         Random random = new Random();
         if (swap != 0) {
-            double gap = SCENE_WIDTH - ( pillar2.getWidth());
+            double gap = SCENE_WIDTH - (pillar2.getWidth());
             System.out.println(gap);
             // Generate a random value within the gap
             double randomX = pillar2.getLayoutX() + pillar2.getWidth() + random.nextDouble() * gap;
@@ -255,18 +367,18 @@ public class PlayController {
             pillar.setLayoutX(randomX);
             pillar.setLayoutY(336);
             // set random width
-            pillar.setWidth(random.nextDouble() * 200 + PILLAR_WIDTH);
+//            pillar.setWidth(random.nextDouble() * 200 + PILLAR_WIDTH);
         } else {
-            double gap = SCENE_WIDTH - ( pillar.getWidth());
-            System.out.println(gap);
+            double gap = SCENE_WIDTH - (pillar.getWidth());
+//            System.out.println();
             // Generate a random value within the gap
             double randomX = pillar.getLayoutX() + pillar.getWidth() + random.nextDouble() * gap;
             // Set the X position of the pillar
-            System.out.println(randomX);
+            System.out.println("pillar2: " + randomX);
             pillar2.setLayoutX(randomX);
             pillar2.setLayoutY(336);
             // set random width
-            pillar2.setWidth(random.nextDouble() * 200 + PILLAR_WIDTH );
+//            pillar2.setWidth(random.nextDouble() * 200 + PILLAR_WIDTH );
         }
 
     }
