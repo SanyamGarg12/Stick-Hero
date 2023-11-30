@@ -8,11 +8,14 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.scene.transform.Rotate;
 import javafx.util.Duration;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.shape.Circle;
+import javafx.scene.paint.Color;
 
 
 import java.io.IOException;
@@ -30,6 +33,8 @@ public class PlayController {
     private Image bkg1;
     private Image bkg2;
     private Image cherryImg;
+    @FXML
+    private Circle redDot;
 
     @FXML
     ImageView cherryImgView;
@@ -51,6 +56,7 @@ public class PlayController {
     private static final int PILLAR_HEIGHT = 150;
     private static final int PILLAR_GAP = 100;
     private Random random;
+    private boolean perfect = false;
     private Pillar newPillar;
     @FXML
     ImageView heroImg;
@@ -91,6 +97,13 @@ public class PlayController {
         cherryImg = new Image(getClass().getResourceAsStream("/Assets/cherry.png"));
         cherryImgView.setImage(cherryImg);
         CherryShow.setImage(cherryImg);
+        // Create a new Circle object for the red dot
+        redDot = new Circle();
+        redDot.setFill(Color.RED);
+        redDot.setRadius(5); // Set the radius as needed
+        redDot.setCenterX(pillar2.getLayoutX() + pillar2.getWidth() / 2);
+        redDot.setCenterY(336);
+        rootPane.getChildren().add(redDot);
         Random rand = new Random();
         double x = rand.nextDouble();
         if (x > 0.5) {
@@ -128,6 +141,15 @@ public class PlayController {
         }
         totaldistance = totaldistance + distanceToPillar2;
 //        distanceToPillar2 = pillar2.getLayoutX() - (heroImg.getLayoutX() + heroImg.getFitWidth());
+        if (swap == 0) {
+            if (Math.abs(stick.getHeight() - distanceToPillar2 - pillar2.getWidth() / 2) < 5) {
+                perfect = true;
+            }
+        } else {
+            if (Math.abs(stick.getHeight() - distanceToPillar2 - pillar.getWidth() / 2) < 5) {
+                perfect = true;
+            }
+        }
         // If the stick length is sufficient to reach pillar2
         if (stick.getHeight() + 5 >= distanceToPillar2 && stick.getHeight() + 5 <= distanceToPillar2 + pillar.getWidth()) {
             double endX;
@@ -290,16 +312,19 @@ public class PlayController {
     }
 
     private void ShiftScene() {
-        ScoreBoard.setText(String.valueOf(Integer.parseInt(ScoreBoard.getText()) + 1));
+        if (!perfect) {
+            ScoreBoard.setText(String.valueOf(Integer.parseInt(ScoreBoard.getText()) + 1));
+        } else {
+            ScoreBoard.setText(String.valueOf(Integer.parseInt(ScoreBoard.getText()) + 2));
+            perfect = false;
+        }
         moveLeft();
 //        pillar2.setTranslateX(pillar2.getLayoutX());
 //        pillar.setTranslateX(pillar.getLayoutX());
 //        tpPillar();
         isSceneShifted = false;
         i++;
-        //remove the stick
-        rootPane.getChildren().remove(stick);
-        //remove the cherry
+
         cherryImgView.setVisible(false);
     }
 
@@ -331,6 +356,8 @@ public class PlayController {
         rotateTimeline.setOnFinished(event -> {
             // Move the character across the stick
             try {
+
+
                 moveHeroAcrossStick();
 
 
@@ -370,10 +397,13 @@ public class PlayController {
                 // Set the base of the stick at the right edge of the character
                 stick.setTranslateX(pillar.getLayoutX() - totaldistance - totalWidth + 2 * pillar.getWidth());
 
+
             } else {
                 stick.setTranslateX(pillar2.getLayoutX() - totaldistance - totalWidth + 2 * pillar2.getWidth()); // Set the base of the stick at the right edge of the character
+
             }
         }
+
 //        stick.setTranslateX(pillar.getTranslateX() + pillar.getWidth()); // Set the base of the stick at the right edge of the character
         stick.setTranslateY(heroImg.getLayoutY() + heroImg.getFitHeight() - 35); // Set the base of the stick at the bottom of the character
         rootPane.getChildren().add(stick);
@@ -408,24 +438,33 @@ public class PlayController {
         TranslateTransition transition3 = new TranslateTransition(Duration.seconds(1), pillar);
         TranslateTransition transition4 = new TranslateTransition(Duration.seconds(1), stick);
         TranslateTransition transition2 = new TranslateTransition(Duration.seconds(1), heroImg);
+        TranslateTransition transition5 = new TranslateTransition(Duration.seconds(1), redDot);
         if (swap == 0) {
             transition.setToX(pillar2.getTranslateX() - distanceToPillar2 - pillar2.getWidth()); // Adjust the distance as needed
             // also move the stick and heroImg
             transition4.setToX(stick.getTranslateX() - distanceToPillar2 - pillar2.getWidth());
             transition2.setToX(heroImg.getTranslateX() - distanceToPillar2 - pillar2.getWidth());
             transition3.setToX(pillar.getTranslateX() - distanceToPillar2 - pillar2.getWidth());
+            transition5.setByX(-distanceToPillar2 - pillar2.getWidth());
         } else {
             transition.setToX(pillar.getTranslateX() - distanceToPillar2 - pillar.getWidth()); // Adjust the distance as needed
             // also move the stick and heroImg
             transition4.setToX(stick.getTranslateX() - distanceToPillar2 - pillar.getWidth());
             transition2.setToX(heroImg.getTranslateX() - distanceToPillar2 - pillar.getWidth());
             transition3.setToX(pillar2.getTranslateX() - distanceToPillar2 - pillar.getWidth());
+            transition5.setByX(-distanceToPillar2 - pillar.getWidth());
         }
         transition.play();
         transition3.play();
         transition4.play();
         transition2.play();
+        transition5.play();
         transition.setOnFinished(event -> {
+            //remove the stick
+            rootPane.getChildren().remove(stick);
+            //remove the red dot
+            rootPane.getChildren().remove(redDot);
+            //remove the cherry
             tpPillar();
         });
     }
@@ -466,6 +505,22 @@ public class PlayController {
             }
             cherryImgView.setLayoutX(pillar.getWidth() + ((random.nextDouble() * (val))) - cherryImgView.getFitWidth());
         }
+// Create a new Circle object for the red dot
+        redDot = new Circle();
+        redDot.setFill(Color.RED);
+        redDot.setRadius(5); // Set the radius as needed
+
+
+        // Position the red dot at the center of the second pillar
+        if (swap != 0) {
+            redDot.setCenterX(pillar2.getX() + pillar2.getWidth() + pillar.getLayoutX() - (pillar2.getLayoutX() + pillar2.getWidth()) + pillar.getWidth() / 2);
+            redDot.setCenterY(336);
+        } else {
+            redDot.setCenterX(pillar.getX() + pillar.getWidth() + pillar2.getLayoutX() - (pillar.getLayoutX() + pillar.getWidth()) + pillar2.getWidth() / 2);
+            redDot.setCenterY(336);
+        }
+        rootPane.getChildren().add(redDot);
+        // Add the red dot to the rootPane
 
     }
 
