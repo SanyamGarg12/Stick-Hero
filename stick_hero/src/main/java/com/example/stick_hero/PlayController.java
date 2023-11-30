@@ -9,6 +9,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
 import javafx.scene.transform.Rotate;
 import javafx.util.Duration;
 import javafx.scene.input.MouseEvent;
@@ -22,13 +23,18 @@ public class PlayController {
     private Timeline stickGrowTimeline;
     private Cherry cherry;
     private Hero hero;
-    private int score;
+    @FXML
+    private Text ScoreBoard;
+    @FXML
+    private Text CherryScoreBoard;
     private Image bkg1;
     private Image bkg2;
     private Image cherryImg;
 
     @FXML
     ImageView cherryImgView;
+    @FXML
+    ImageView CherryShow;
     @FXML
     private ImageView background;
     private boolean motionStarted = false;
@@ -70,6 +76,8 @@ public class PlayController {
     private double distancMoved = 0;
     private double totalWidth = 0;
 
+    private boolean isCollected = false;
+
 
     @FXML
     public void initialize() {
@@ -82,6 +90,7 @@ public class PlayController {
         bkg2 = new Image(getClass().getResourceAsStream("/Assets/bkg02.jpg"));
         cherryImg = new Image(getClass().getResourceAsStream("/Assets/cherry.png"));
         cherryImgView.setImage(cherryImg);
+        CherryShow.setImage(cherryImg);
         Random rand = new Random();
         double x = rand.nextDouble();
         if (x > 0.5) {
@@ -152,6 +161,7 @@ public class PlayController {
                         // Stop the transition
                         transition.stop();
                         loadFrames(false);
+//                        isCollected = false;
                         // Make the hero fall
                         TranslateTransition fallTransition = new TranslateTransition(Duration.seconds(1), heroImg);
                         fallTransition.setToY(SCENE_HEIGHT - heroImg.getFitHeight());
@@ -165,6 +175,7 @@ public class PlayController {
                     if (upsideDown && pillar2.getLayoutX() + pillar2.getWidth() + heroImg.getTranslateX() >= pillar.getLayoutX() + heroImg.getFitWidth() / 2) {
                         // Stop the transition
                         transition.stop();
+//                        isCollected = false;
                         loadFrames(false);
                         // Make the hero fall
                         TranslateTransition fallTransition = new TranslateTransition(Duration.seconds(1), heroImg);
@@ -175,17 +186,29 @@ public class PlayController {
                         motionStarted = false;
                     }
                 }
+
+                if (upsideDown) {
+                    // Check if the hero's position overlaps with the cherry's position
+                    if (heroImg.getBoundsInParent().intersects(cherryImgView.getBoundsInParent())) {
+                        // The hero has collected the cherry
+                        // Perform the necessary action here, like incrementing the score or making the cherry disappear
+                        cherryImgView.setVisible(false);
+                        isCollected = true;
+                    }
+                }
             });
-            // Play the transition
             transition.play();
 
             transition.setOnFinished(event -> {
-
-
-                             // Load the standing frames after the hero has moved
+                // Load the standing frames after the hero has moved
                 loadFrames(false);
                 HeroSuccess();
                 ShiftScene();
+                if (isCollected) {
+                    CherryScoreBoard.setText(String.valueOf(Integer.parseInt(CherryScoreBoard.getText()) + 1));
+                    isCollected = false;
+                }
+                //set score in scoreboard
             });
             //create a trashProcess without sleep
 //            loadFrames(false);
@@ -224,6 +247,14 @@ public class PlayController {
                             fallTransition.play();
                         }
                     }
+                    if (upsideDown) {
+                        // Check if the hero's position overlaps with the cherry's position
+                        if (heroImg.getBoundsInParent().intersects(cherryImgView.getBoundsInParent())) {
+                            // The hero has collected the cherry
+                            // Perform the necessary action here, like incrementing the score or making the cherry disappear
+                            cherryImgView.setVisible(false);
+                        }
+                    }
                 });
             }
             transition.play();
@@ -259,6 +290,7 @@ public class PlayController {
     }
 
     private void ShiftScene() {
+        ScoreBoard.setText(String.valueOf(Integer.parseInt(ScoreBoard.getText()) + 1));
         moveLeft();
 //        pillar2.setTranslateX(pillar2.getLayoutX());
 //        pillar.setTranslateX(pillar.getLayoutX());
@@ -300,6 +332,7 @@ public class PlayController {
             // Move the character across the stick
             try {
                 moveHeroAcrossStick();
+
 
 //                sleep(2000);
 //                loadFrames(false);
