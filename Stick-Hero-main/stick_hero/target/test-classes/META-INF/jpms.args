@@ -1,0 +1,4 @@
+--patch-module
+com.example.stick_hero=_
+--add-reads
+com.example.stick_hero=ALL-UNNAMED
